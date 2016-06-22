@@ -1,0 +1,60 @@
+#!/bin/bash
+#Purpose: To test given program's correctness. 
+#         Each name specified in the Text file will be the name searched for in the working 
+#         directory with .in and .out extension. Both files must exist as it will compare the output in 
+#         the .out file to the actual output of the program using the .in file as input.
+testnames=$(cat $1)
+usage(){
+        echo "Given $# argument(s), require 2. A text file containing names of input and output files followed by the program name." >&2
+}
+
+cantRead(){
+        echo "Failed to read one of $1.in or $1.out" >&2
+}
+
+testPass(){
+	echo "All tests have passed"
+}
+
+if [ $# -ne 2 ]; then
+        usage
+        exit 1
+fi
+
+for testfilename in $testnames; do
+        if [ -e "${testfilename}.in" ] && [ -e "${testfilename}.out" ] && [ -e "${testfilename}.out" ] && [ -r "${testfilename}.out" ]; then
+                if [ -e "${testfilename}.args" ] && [ -r "${testfilename}.args" ]; then
+                        tempOut=$(mktemp ./"${testfilename}.XXXXXXXXXXX")
+                        ./$2 $(cat ./"${testfilename}.args") < ./"${testfilename}.in" > ${tempOut}
+                        diff -q ${tempOut} "${testfilename}.out" > /dev/null
+                        isDiff=$?
+
+                else
+                        tempOut=$(mktemp ./"${testfilename}.XXXXXXXXXXX")
+                        ./$2 < ./"${testfilename}.in" > ${tempOut}
+                        diff -q ${tempOut} "${testfilename}.out" > /dev/null
+                        isDiff=$?
+                fi
+
+                if [ $isDiff -eq 1 ]; then
+                echo "Test failed: ${testfilename}"
+                echo "Input:"
+                cat ./"${testfilename}.in"
+                echo "Expected:"
+                cat ./"${testfilename}.out"
+                echo "Actual:"
+                cat ${tempOut}
+                fi
+
+                rm ${tempOut}
+		testPass
+
+
+
+        else
+                cantRead $testfilename
+                exit 1
+        fi
+
+
+done
